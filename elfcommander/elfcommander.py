@@ -15,11 +15,11 @@ import sys
 
 try:
     from pkg_resources import get_distribution, DistributionNotFound
-    _dist = get_distribution('hybridizer')
+    _dist = get_distribution('elfcommander')
     # Normalize case for Windows systems
     dist_loc = os.path.normcase(_dist.location)
     here = os.path.normcase(__file__)
-    if not here.startswith(os.path.join(dist_loc, 'hybridizer')):
+    if not here.startswith(os.path.join(dist_loc, 'elfcommander')):
         # not installed, but there is another version that *is*
         raise DistributionNotFound
 except (ImportError,DistributionNotFound):
@@ -33,17 +33,17 @@ BAUDRATE = 9600
 FILTER_PERIOD = 0.2
 MSC_TIMEOUT = 0.15
 
-class HybridizerError(Exception):
+class ElfCommanderError(Exception):
     def __init__(self,value):
         self.value = value
     def __str__(self):
         return repr(self.value)
 
 
-class Hybridizer(object):
+class ElfCommander(object):
     '''
-    This Python package (hybridizer) creates a class named Hybridizer to
-    communcate with and control the Janelia Hybridizer. The hybridizer
+    This Python package (elfcommander) creates a class named ElfCommander to
+    communcate with and control the Janelia Elf. The Elf
     uses two hardware control devices, the mixed_signal_controller
     modular_device, and the bioshake_device. The
     mixed_signal_controller both switches the valves and reads the
@@ -51,8 +51,8 @@ class Hybridizer(object):
     bioshake_device controls the heater/shaker.
     Example Usage:
 
-    hyb = Hybridizer('example_calibration.yaml','example_config.yaml')
-    hyb.run_protocol()
+    elf = ElfCommander('example_calibration.yaml','example_config.yaml')
+    elf.run_protocol()
     '''
 
     def __init__(self,
@@ -100,9 +100,9 @@ class Hybridizer(object):
             try:
                 msc_dict = modular_devices['mixed_signal_controller']
             except KeyError:
-                raise HybridizerError('Could not find mixed_signal_controller. Check connections and permissions.')
+                raise ElfCommanderError('Could not find mixed_signal_controller. Check connections and permissions.')
             if len(msc_dict) > 1:
-                raise HybridizerError('More than one mixed_signal_controller found. Only one should be connected.')
+                raise ElfCommanderError('More than one mixed_signal_controller found. Only one should be connected.')
             self._msc = msc_dict[msc_dict.keys()[0]]
             self._debug_print('Found mixed_signal_controller on port ' + str(self._msc.get_port()))
 
@@ -219,7 +219,7 @@ class Hybridizer(object):
                       temp_target=None,
                       repeat=0):
         if (chemical not in self._valves):
-            raise HybridizerError(chemical + ' is not listed as part of the manifold in the config file!')
+            raise ElfCommanderError(chemical + ' is not listed as part of the manifold in the config file!')
         if repeat < 0:
             repeat = 0
         run_count = repeat + 1
@@ -342,7 +342,7 @@ class Hybridizer(object):
                 channels = [valve['channel']]
                 self._msc.set_channels_on(channels)
             except KeyError:
-                raise HybridizerError('Unknown valve: ' + str(valve_key) + '. Check yaml config file for errors.')
+                raise ElfCommanderError('Unknown valve: ' + str(valve_key) + '. Check yaml config file for errors.')
 
     def _set_valves_on(self, valve_keys):
         if self._using_msc:
@@ -350,7 +350,7 @@ class Hybridizer(object):
                 channels = [self._valves[valve_key]['channel'] for valve_key in valve_keys]
                 self._msc.set_channels_on(channels)
             except KeyError:
-                raise HybridizerError('Unknown valve: ' + str(valve_key) + '. Check yaml config file for errors.')
+                raise ElfCommanderError('Unknown valve: ' + str(valve_key) + '. Check yaml config file for errors.')
 
     def _set_valve_off(self, valve_key):
         if self._using_msc:
@@ -359,7 +359,7 @@ class Hybridizer(object):
                 channels = [valve['channel']]
                 self._msc.set_channels_off(channels)
             except KeyError:
-                raise HybridizerError('Unknown valve: ' + str(valve_key) + '. Check yaml config file for errors.')
+                raise ElfCommanderError('Unknown valve: ' + str(valve_key) + '. Check yaml config file for errors.')
 
     def _set_valves_off(self, valve_keys):
         if self._using_msc:
@@ -367,7 +367,7 @@ class Hybridizer(object):
                 channels = [self._valves[valve_key]['channel'] for valve_key in valve_keys]
                 self._msc.set_channels_off(channels)
             except KeyError:
-                raise HybridizerError('Unknown valve: ' + str(valve_key) + '. Check yaml config file for errors.')
+                raise ElfCommanderError('Unknown valve: ' + str(valve_key) + '. Check yaml config file for errors.')
 
     def _set_all_valves_off(self):
         valve_keys = self._get_valves()
@@ -492,7 +492,7 @@ class Hybridizer(object):
         else:
             ain = valve['analog_inputs']['high']
         if volume > self._config['volume_max']:
-            raise HybridizerError('Asking for volume greater than the max volume of {0}!'.format(self._config['volume_max']))
+            raise ElfCommanderError('Asking for volume greater than the max volume of {0}!'.format(self._config['volume_max']))
         if volume <= self._config['volume_crossover']:
             poly = Polynomial(self._calibration[valve_key]['volume_to_adc_low'])
             adc_value = int(round(poly(volume)))
@@ -683,8 +683,8 @@ def main(args=None):
     print("Debug MSC: {0}".format(debug_msc))
 
     debug = True
-    hyb = Hybridizer(debug=debug,calibration_file_path=calibration_file_path,config_file_path=config_file_path,debug_msc=debug_msc)
-    hyb.run_protocol()
+    elf = ElfCommander(debug=debug,calibration_file_path=calibration_file_path,config_file_path=config_file_path,debug_msc=debug_msc)
+    elf.run_protocol()
 
 
 # -----------------------------------------------------------------------------------------

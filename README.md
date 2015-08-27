@@ -1,9 +1,9 @@
-hybridizer_python
-=================
+elf_commander_python
+====================
 
-This Python package (hybridizer) creates a class named Hybridizer to
-communcate with and control the Janelia Hybridizer. The hybridizer
-uses two hardware control devices, the mixed\_signal\_controller
+This Python package (elfcommander) creates a class named ElfCommander
+to communcate with and control the Janelia Elf. The Elf uses two
+hardware control devices, the mixed\_signal\_controller
 modular\_device, and the bioshake_device. The
 mixed\_signal\_controller both switches the valves and reads the
 analog signals from the cylinder hall effect sensors. The
@@ -24,8 +24,8 @@ License:
 Open a terminal and enter:
 
 ```shell
-source ~/virtualenvs/hybridizer/bin/activate
-hybridzer example_calibration.yaml example_config.yaml
+source ~/virtualenvs/elfcommander/bin/activate
+elfcommander example_calibration.yaml example_config.yaml
 ```
 
 ##Installation
@@ -49,17 +49,17 @@ Open a terminal and enter:
 ```shell
 mkdir ~/git
 cd ~/git
-git clone https://github.com/janelia-idf/hybridizer_config.git
-git clone https://github.com/janelia-idf/hybridizer.git
-cd hybridizer
+git clone https://github.com/janelia-idf/elf_config.git
+git clone https://github.com/janelia-idf/elf.git
+cd elf
 git submodule init
 git submodule update
 cd ~
 mkdir ~/virtualenvs
 cd ~/virtualenvs
-virtualenv hybridizer
-source ~/virtualenvs/hybridizer/bin/activate
-pip install hybridizer
+virtualenv elfcommander
+source ~/virtualenvs/elfcommander/bin/activate
+pip install elfcommander
 ```
 
 On linux, you may need to add yourself to the group 'dialout' in order
@@ -79,8 +79,8 @@ sudo reboot
 Open a terminal and enter:
 
 ```shell
-virtualenv C:\virtualenvs\hybridizer
-C:\virtualenvs\hybridizer\Scripts\activate
+virtualenv C:\virtualenvs\elfcommander
+C:\virtualenvs\elfcommander\Scripts\activate
 pip install ipython
-pip install hybridizier
+pip install elfcommander
 ```

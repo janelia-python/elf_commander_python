@@ -10,18 +10,18 @@ with open(path.join(here, 'DESCRIPTION.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name='hybridizer',
+    name='elfcommander',
 
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # http://packaging.python.org/en/latest/tutorial.html#version
     version=get_git_version(),
 
-    description='Interface to the Janelia hybridizer.',
+    description='Interface to the Janelia Elf.',
     long_description=long_description,
 
     # The project's main homepage.
-    url='https://github.com/janelia-pypi/hybridizer_python',
+    url='https://github.com/janelia-pypi/elf_commander_python',
 
     # Author details
     author='Peter Polidoro',
@@ -57,7 +57,7 @@ setup(
     ],
 
     # What does your project relate to?
-    keywords='hybridizer janelia modular_device bioshake',
+    keywords='elf elfcommander janelia modular_device bioshake',
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
@@ -91,7 +91,7 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
         'console_scripts': [
-            'hybridizer=hybridizer:main',
+            'elfcommander=elfcommander:main',
         ],
     },
 )
