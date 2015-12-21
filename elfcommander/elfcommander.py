@@ -596,10 +596,14 @@ class ElfCommander(object):
     def run_calibration(self):
         self._debug_print('pre setup sequence...')
         valves = ['quad1','quad2','quad3','quad4','quad5','quad6']
-        # self._set_valve_on('aspirate')
+        self._debug_print('filling all cylinders...')
         self._set_valve_on('system')
         self._set_valves_on(valves)
-        time.sleep(10)
+        time.sleep(20)
+        self._debug_print('zeroing balance...')
+        self._balance.zero()
+        time.sleep(4)
+        self._debug_print('emptying all cylinders...')
         self._set_valve_off('system')
         time.sleep(10)
         # self._set_valve_off('aspirate')
@@ -609,8 +613,6 @@ class ElfCommander(object):
         # time.sleep(10)
         # self._debug_print('zeroing hall effect sensors...')
         # self._store_adc_values_min()
-        self._debug_print('zeroing balance...')
-        self._balance.zero()
         self._debug_print('running calibration...')
         timestr = time.strftime("%Y%m%d-%H%M%S")
         data_file = open(timestr+'.csv','w')
@@ -633,9 +635,6 @@ class ElfCommander(object):
                 self._debug_print('fill_duration: {0}, run: {1} out of {2}'.format(fill_duration,run+1,run_count))
                 row_data = []
                 row_data.append(fill_duration)
-                initial_weight = self._balance.get_weight()[0]
-                self._debug_print('initial_weight: {0}'.format(initial_weight))
-                row_data.append(initial_weight)
                 self._set_valve_on('system')
                 time.sleep(2)
                 channels = []
@@ -658,6 +657,10 @@ class ElfCommander(object):
                 row_data.extend(adc_high_values)
                 self._set_valve_off('system')
                 time.sleep(4)
+                initial_weight = self._balance.get_weight()[0]
+                self._debug_print('initial_weight: {0}'.format(initial_weight))
+                row_data.append(initial_weight)
+                time.sleep(2)
                 weight_prev = initial_weight
                 for valve in valves:
                     self._debug_print('Dispensing {0}'.format(valve))
@@ -670,9 +673,9 @@ class ElfCommander(object):
                     self._debug_print('{0} measured {1}'.format(valve,weight))
                     row_data.append(weight)
                     weight_prev = weight_total
-                self._set_valve_off('aspirate')
-                self._debug_print('aspirating...')
-                time.sleep(20)
+                # self._set_valve_off('aspirate')
+                # self._debug_print('aspirating...')
+                # time.sleep(20)
                 self._set_all_valves_off()
                 data_writer.writerow(row_data)
         data_file.close()
