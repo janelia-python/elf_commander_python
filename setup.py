@@ -71,6 +71,7 @@ setup(
                       'bioshake_device >= 1.6',
                       'pyyaml',
                       'numpy',
+                      'mettler_toledo_device'
     ],
 
     # If there are data files included in your packages that need to be

@@ -8,6 +8,7 @@ import time
 import yaml
 import argparse
 from numpy.polynomial.polynomial import polyfit,polyadd,Polynomial
+from mettler_toledo_device import MettlerToledoDevice
 import csv
 import copy
 import numpy
@@ -60,6 +61,7 @@ class ElfCommander(object):
                  config_file_path,
                  mixed_signal_controller=True,
                  bioshake_device=True,
+                 balance=False,
                  debug_msc=False,
                  *args,**kwargs):
         if 'debug' in kwargs:
@@ -69,18 +71,26 @@ class ElfCommander(object):
             self._debug = DEBUG
         self._using_msc = mixed_signal_controller
         self._using_bsc = bioshake_device
-        with open(calibration_file_path,'r') as calibration_stream:
-            self._calibration = yaml.load(calibration_stream)
+        self._using_balance = balance
+        self._calibration_file_path = calibration_file_path
+        try:
+            with open(calibration_file_path,'r') as calibration_stream:
+                self._calibration = yaml.load(calibration_stream)
+        except IOError:
+            self._calibration = None
         with open(config_file_path,'r') as config_stream:
             self._config = yaml.load(config_stream)
         # check to see if user switched config and calibration files
-        if ('head' in self._calibration) and ('quad1' in self._config):
+        if (self._calibration is not None) and('head' in self._calibration) and ('quad1' in self._config):
             calibration = self._config
             self._config = self._calibration
             self._calibration = calibration
         self._valves = self._config['head']
-        self._valves.update(self._config['manifold'])
-        if self._using_msc or self._using_bsc:
+        try:
+            self._valves.update(self._config['manifold'])
+        except KeyError:
+            pass
+        if self._using_msc or self._using_bsc or self._using_balance:
             ports = find_serial_device_ports(debug=self._debug)
             self._debug_print('Found serial devices on ports ' + str(ports))
             self._debug_print('Identifying connected devices (may take some time)...')
@@ -94,9 +104,12 @@ class ElfCommander(object):
             ports.remove(self._bsc.get_port())
             self._SHAKE_SPEED_MIN = self._bsc.get_shake_speed_min()
             self._SHAKE_SPEED_MAX = self._bsc.get_shake_speed_max()
+        if self._using_balance:
+            self._balance = MettlerToledoDevice(try_ports=ports)
+            self._debug_print('Found balance on port ' + str(self._balance.get_port()))
+            ports.remove(self._balance.get_port())
         if self._using_msc:
             modular_devices = ModularDevices(try_ports=ports,timeout=MSC_TIMEOUT,debug=debug_msc)
-
             try:
                 msc_dict = modular_devices['mixed_signal_controller']
             except KeyError:
@@ -580,89 +593,89 @@ class ElfCommander(object):
     #             data_writer.writerow(row_data)
     #     data_file.close()
 
-    # def run_calibration(self):
-    #     self._debug_print('pre setup sequence...')
-    #     valves = ['quad1','quad2','quad3','quad4','quad5','quad6']
-    #     self._set_valve_on('aspirate')
-    #     self._set_valve_on('system')
-    #     self._set_valves_on(valves)
-    #     time.sleep(10)
-    #     self._set_valve_off('system')
-    #     time.sleep(10)
-    #     self._set_valve_off('aspirate')
-    #     time.sleep(20)
-    #     self._setup()
-    #     self._set_valve_on('aspirate')
-    #     time.sleep(10)
-    #     # self._debug_print('zeroing hall effect sensors...')
-    #     # self._store_adc_values_min()
-    #     self._debug_print('zeroing balance...')
-    #     self._balance.zero()
-    #     self._debug_print('running calibration...')
-    #     timestr = time.strftime("%Y%m%d-%H%M%S")
-    #     data_file = open(timestr+'.csv','w')
-    #     data_writer = csv.writer(data_file)
-    #     header = ['fill_duration','initial_weight']
-    #     valve_adc_low = [valve+'_adc_low' for valve in valves]
-    #     header.extend(valve_adc_low)
-    #     valve_adc_high = [valve+'_adc_high' for valve in valves]
-    #     header.extend(valve_adc_high)
-    #     header.extend(valves)
-    #     data_writer.writerow(header)
-    #     duration_inc = 250
-    #     duration_max = 10000
-    #     fill_durations = range(duration_inc,duration_max+duration_inc,duration_inc)
-    #     run_count = 3
-    #     for run in range(run_count):
-    #         for fill_duration in fill_durations:
-    #             self._set_valve_on('aspirate')
-    #             time.sleep(2)
-    #             self._debug_print('fill_duration: {0}, run: {1} out of {2}'.format(fill_duration,run+1,run_count))
-    #             row_data = []
-    #             row_data.append(fill_duration)
-    #             initial_weight = self._balance.get_weight()[0]
-    #             self._debug_print('initial_weight: {0}'.format(initial_weight))
-    #             row_data.append(initial_weight)
-    #             self._set_valve_on('system')
-    #             time.sleep(2)
-    #             channels = []
-    #             adc_low_ain = []
-    #             adc_high_ain = []
-    #             for valve_key in valves:
-    #                 valve = self._valves[valve_key]
-    #                 channels.append(valve['channel'])
-    #                 adc_low_ain.append(valve['analog_inputs']['low'])
-    #                 adc_high_ain.append(valve['analog_inputs']['high'])
-    #             self._msc.set_channels_on_for(channels,fill_duration)
-    #             while not self._msc.are_all_set_fors_complete():
-    #                 self._debug_print('Waiting...')
-    #                 time.sleep(fill_duration/1000)
-    #             self._msc.remove_all_set_fors()
-    #             adc_values_filtered = self._get_adc_values_filtered()
-    #             adc_low_values = [adc_values_filtered[ain] for ain in adc_low_ain]
-    #             adc_high_values = [adc_values_filtered[ain] for ain in adc_high_ain]
-    #             row_data.extend(adc_low_values)
-    #             row_data.extend(adc_high_values)
-    #             self._set_valve_off('system')
-    #             time.sleep(4)
-    #             weight_prev = initial_weight
-    #             for valve in valves:
-    #                 self._debug_print('Dispensing {0}'.format(valve))
-    #                 self._set_valve_on(valve)
-    #                 time.sleep(4)
-    #                 self._set_valve_off(valve)
-    #                 time.sleep(2)
-    #                 weight_total = self._balance.get_weight()[0]
-    #                 weight = weight_total - weight_prev
-    #                 self._debug_print('{0} measured {1}'.format(valve,weight))
-    #                 row_data.append(weight)
-    #                 weight_prev = weight_total
-    #             self._set_valve_off('aspirate')
-    #             self._debug_print('aspirating...')
-    #             time.sleep(20)
-    #             self._set_all_valves_off()
-    #             data_writer.writerow(row_data)
-    #     data_file.close()
+    def run_calibration(self):
+        self._debug_print('pre setup sequence...')
+        valves = ['quad1','quad2','quad3','quad4','quad5','quad6']
+        # self._set_valve_on('aspirate')
+        self._set_valve_on('system')
+        self._set_valves_on(valves)
+        time.sleep(10)
+        self._set_valve_off('system')
+        time.sleep(10)
+        # self._set_valve_off('aspirate')
+        # time.sleep(20)
+        # self._setup()
+        # self._set_valve_on('aspirate')
+        # time.sleep(10)
+        # self._debug_print('zeroing hall effect sensors...')
+        # self._store_adc_values_min()
+        self._debug_print('zeroing balance...')
+        self._balance.zero()
+        self._debug_print('running calibration...')
+        timestr = time.strftime("%Y%m%d-%H%M%S")
+        data_file = open(timestr+'.csv','w')
+        data_writer = csv.writer(data_file)
+        header = ['fill_duration','initial_weight']
+        valve_adc_low = [valve+'_adc_low' for valve in valves]
+        header.extend(valve_adc_low)
+        valve_adc_high = [valve+'_adc_high' for valve in valves]
+        header.extend(valve_adc_high)
+        header.extend(valves)
+        data_writer.writerow(header)
+        duration_inc = 250
+        duration_max = 10000
+        fill_durations = range(duration_inc,duration_max+duration_inc,duration_inc)
+        run_count = 3
+        for run in range(run_count):
+            for fill_duration in fill_durations:
+                self._set_valve_on('aspirate')
+                time.sleep(2)
+                self._debug_print('fill_duration: {0}, run: {1} out of {2}'.format(fill_duration,run+1,run_count))
+                row_data = []
+                row_data.append(fill_duration)
+                initial_weight = self._balance.get_weight()[0]
+                self._debug_print('initial_weight: {0}'.format(initial_weight))
+                row_data.append(initial_weight)
+                self._set_valve_on('system')
+                time.sleep(2)
+                channels = []
+                adc_low_ain = []
+                adc_high_ain = []
+                for valve_key in valves:
+                    valve = self._valves[valve_key]
+                    channels.append(valve['channel'])
+                    adc_low_ain.append(valve['analog_inputs']['low'])
+                    adc_high_ain.append(valve['analog_inputs']['high'])
+                self._msc.set_channels_on_for(channels,fill_duration)
+                while not self._msc.are_all_set_fors_complete():
+                    self._debug_print('Waiting...')
+                    time.sleep(fill_duration/1000)
+                self._msc.remove_all_set_fors()
+                adc_values_filtered = self._get_adc_values_filtered()
+                adc_low_values = [adc_values_filtered[ain] for ain in adc_low_ain]
+                adc_high_values = [adc_values_filtered[ain] for ain in adc_high_ain]
+                row_data.extend(adc_low_values)
+                row_data.extend(adc_high_values)
+                self._set_valve_off('system')
+                time.sleep(4)
+                weight_prev = initial_weight
+                for valve in valves:
+                    self._debug_print('Dispensing {0}'.format(valve))
+                    self._set_valve_on(valve)
+                    time.sleep(4)
+                    self._set_valve_off(valve)
+                    time.sleep(2)
+                    weight_total = self._balance.get_weight()[0]
+                    weight = weight_total - weight_prev
+                    self._debug_print('{0} measured {1}'.format(valve,weight))
+                    row_data.append(weight)
+                    weight_prev = weight_total
+                self._set_valve_off('aspirate')
+                self._debug_print('aspirating...')
+                time.sleep(20)
+                self._set_all_valves_off()
+                data_writer.writerow(row_data)
+        data_file.close()
 
 def main(args=None):
     if args is None:
@@ -672,6 +685,9 @@ def main(args=None):
     parser.add_argument("config_file_path", help="Path to yaml config file.")
     parser.add_argument('-d','--debug-msc',
                         help='Open mixed_signal_controller in debug mode.',
+                        action='store_true')
+    parser.add_argument('-c','--calibration',
+                        help='Calibration mode.',
                         action='store_true')
 
     args = parser.parse_args()
@@ -683,8 +699,21 @@ def main(args=None):
     print("Debug MSC: {0}".format(debug_msc))
 
     debug = True
-    elf = ElfCommander(debug=debug,calibration_file_path=calibration_file_path,config_file_path=config_file_path,debug_msc=debug_msc)
-    elf.run_protocol()
+    if not args.calibration:
+        elf = ElfCommander(debug=debug,
+                           calibration_file_path=calibration_file_path,
+                           config_file_path=config_file_path,
+                           debug_msc=debug_msc)
+        elf.run_protocol()
+    else:
+        elf = ElfCommander(debug=debug,
+                           calibration_file_path=calibration_file_path,
+                           config_file_path=config_file_path,
+                           mixed_signal_controller=True,
+                           bioshake_device=False,
+                           balance=True,
+                           debug_msc=debug_msc)
+        elf.run_calibration()
 
 
 # -----------------------------------------------------------------------------------------
