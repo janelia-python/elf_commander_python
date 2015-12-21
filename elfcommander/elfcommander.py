@@ -628,8 +628,8 @@ class ElfCommander(object):
         run_count = 3
         for run in range(run_count):
             for fill_duration in fill_durations:
-                self._set_valve_on('aspirate')
-                time.sleep(2)
+                # self._set_valve_on('aspirate')
+                # time.sleep(2)
                 self._debug_print('fill_duration: {0}, run: {1} out of {2}'.format(fill_duration,run+1,run_count))
                 row_data = []
                 row_data.append(fill_duration)
