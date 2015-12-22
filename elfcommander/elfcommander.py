@@ -606,6 +606,9 @@ class ElfCommander(object):
         self._debug_print('emptying all cylinders...')
         self._set_valve_off('system')
         time.sleep(10)
+        self._set_valves_off(valves)
+        initial_weight = self._balance.get_weight()[0]
+        self._debug_print('initial_weight: {0}'.format(initial_weight))
         # self._set_valve_off('aspirate')
         # time.sleep(20)
         # self._setup()
@@ -635,6 +638,10 @@ class ElfCommander(object):
                 self._debug_print('fill_duration: {0}, run: {1} out of {2}'.format(fill_duration,run+1,run_count))
                 row_data = []
                 row_data.append(fill_duration)
+                initial_weight = self._balance.get_weight()[0]
+                self._debug_print('initial_weight: {0}'.format(initial_weight))
+                row_data.append(initial_weight)
+                time.sleep(2)
                 self._set_valve_on('system')
                 time.sleep(2)
                 channels = []
@@ -645,6 +652,8 @@ class ElfCommander(object):
                     channels.append(valve['channel'])
                     adc_low_ain.append(valve['analog_inputs']['low'])
                     adc_high_ain.append(valve['analog_inputs']['high'])
+                print('channels: {0}'.format(channels))
+                print('fill_duration: {0}'.format(fill_duration))
                 self._msc.set_channels_on_for(channels,fill_duration)
                 while not self._msc.are_all_set_fors_complete():
                     self._debug_print('Waiting...')
@@ -657,11 +666,7 @@ class ElfCommander(object):
                 row_data.extend(adc_high_values)
                 self._set_valve_off('system')
                 time.sleep(4)
-                initial_weight = self._balance.get_weight()[0]
-                self._debug_print('initial_weight: {0}'.format(initial_weight))
-                row_data.append(initial_weight)
-                time.sleep(2)
-                weight_prev = initial_weight
+                weight_prev = self._balance.get_weight()[0]
                 for valve in valves:
                     self._debug_print('Dispensing {0}'.format(valve))
                     self._set_valve_on(valve)
