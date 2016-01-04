@@ -72,7 +72,8 @@ class ElfCommander(object):
         self._using_msc = mixed_signal_controller
         self._using_bsc = bioshake_device
         self._using_balance = balance
-        self._calibration_file_path = calibration_file_path
+        if not os.path.exists(calibration_file_path):
+        self._calibration_file_dir = calibration_file_path
         try:
             with open(calibration_file_path,'r') as calibration_stream:
                 self._calibration = yaml.load(calibration_stream)
@@ -406,6 +407,20 @@ class ElfCommander(object):
             adc_values_filtered = adc_values_filtered.astype(int)
         return adc_values_filtered
 
+    def _get_weight_filtered(self):
+        weight_filtered = None
+        if self._using_balance:
+            weights = None
+            for sample_n in range(self._config['weight_sample_count']):
+                weight = self._balance.get_weight()[0]
+                if weights is None:
+                    weights = numpy.array([weight])
+                else:
+                    weights = numpy.append(weights,[weight],axis=0)
+                time.sleep(FILTER_PERIOD)
+            weight_filtered = numpy.mean(weights,axis=0)
+        return weight_filtered
+
     def _dispense_volume(self,valve_keys,volume):
     #     if i > 0:
     #         dispense_shake_duration = self._config['inter_dispense_shake_duration']
@@ -607,7 +622,7 @@ class ElfCommander(object):
         self._set_valve_off('system')
         time.sleep(10)
         self._set_valves_off(valves)
-        initial_weight = self._balance.get_weight()[0]
+        initial_weight = self._get_weight_filtered()
         self._debug_print('initial_weight: {0}'.format(initial_weight))
         # self._set_valve_off('aspirate')
         # time.sleep(20)
@@ -627,10 +642,10 @@ class ElfCommander(object):
         header.extend(valve_adc_high)
         header.extend(valves)
         data_writer.writerow(header)
-        duration_inc = 250
-        duration_max = 10000
+        duration_inc = self._config['fill_duration_inc']
+        duration_max = self._config['fill_duration_max']
         fill_durations = range(duration_inc,duration_max+duration_inc,duration_inc)
-        run_count = 3
+        run_count = self._config['run_count']
         for run in range(run_count):
             for fill_duration in fill_durations:
                 # self._set_valve_on('aspirate')
@@ -638,7 +653,7 @@ class ElfCommander(object):
                 self._debug_print('fill_duration: {0}, run: {1} out of {2}'.format(fill_duration,run+1,run_count))
                 row_data = []
                 row_data.append(fill_duration)
-                initial_weight = self._balance.get_weight()[0]
+                initial_weight = self._get_weight_filtered()
                 self._debug_print('initial_weight: {0}'.format(initial_weight))
                 row_data.append(initial_weight)
                 time.sleep(2)
@@ -666,14 +681,14 @@ class ElfCommander(object):
                 row_data.extend(adc_high_values)
                 self._set_valve_off('system')
                 time.sleep(4)
-                weight_prev = self._balance.get_weight()[0]
+                weight_prev = self._get_weight_filtered()
                 for valve in valves:
                     self._debug_print('Dispensing {0}'.format(valve))
                     self._set_valve_on(valve)
                     time.sleep(4)
                     self._set_valve_off(valve)
                     time.sleep(2)
-                    weight_total = self._balance.get_weight()[0]
+                    weight_total = self._get_weight_filtered()
                     weight = weight_total - weight_prev
                     self._debug_print('{0} measured {1}'.format(valve,weight))
                     row_data.append(weight)
