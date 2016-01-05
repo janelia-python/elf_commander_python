@@ -732,13 +732,13 @@ def main(args=None):
     debug = True
     if not args.calibration:
         elf = ElfCommander(debug=debug,
-                           calibration_file_path=calibration_file_path,
+                           calibration_path=calibration_file_path,
                            config_file_path=config_file_path,
                            debug_msc=debug_msc)
         elf.run_protocol()
     else:
         elf = ElfCommander(debug=debug,
-                           calibration_file_path=calibration_file_path,
+                           calibration_path=calibration_file_path,
                            config_file_path=config_file_path,
                            mixed_signal_controller=True,
                            bioshake_device=False,
