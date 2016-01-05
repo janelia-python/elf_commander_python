@@ -57,7 +57,7 @@ class ElfCommander(object):
     '''
 
     def __init__(self,
-                 calibration_file_path,
+                 calibration_path,
                  config_file_path,
                  mixed_signal_controller=True,
                  bioshake_device=True,
@@ -72,10 +72,16 @@ class ElfCommander(object):
         self._using_msc = mixed_signal_controller
         self._using_bsc = bioshake_device
         self._using_balance = balance
-        if not os.path.exists(calibration_file_path):
+        if '.yaml' in calibration_path:
+            self._calibration_file_dir = os.path.dirname(calibration_path)
+            self._calibration_file_path = calibration_path
+        else:
             self._calibration_file_dir = calibration_file_path
+            self._calibration_file_path = os.path.join(self._calibration_file_dir,'calibration.yaml')
+        if not os.path.exists(self._calibration_file_dir):
+            os.makedirs(self._calibration_file_dir)
         try:
-            with open(calibration_file_path,'r') as calibration_stream:
+            with open(self._calibration_file_path,'r') as calibration_stream:
                 self._calibration = yaml.load(calibration_stream)
         except IOError:
             self._calibration = None
@@ -633,7 +639,9 @@ class ElfCommander(object):
         # self._store_adc_values_min()
         self._debug_print('running calibration...')
         timestr = time.strftime("%Y%m%d-%H%M%S")
-        data_file = open(timestr+'.csv','w')
+        data_filename = timestr + '.csv'
+        data_filepath = os.path.join(self._calibration_file_dir,data_filename)
+        data_file = open(data_filepath,'w')
         data_writer = csv.writer(data_file)
         header = ['fill_duration','initial_weight']
         valve_adc_low = [valve+'_adc_low' for valve in valves]
