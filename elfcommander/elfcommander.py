@@ -73,7 +73,7 @@ class ElfCommander(object):
         self._using_bsc = bioshake_device
         self._using_balance = balance
         if not os.path.exists(calibration_file_path):
-        self._calibration_file_dir = calibration_file_path
+            self._calibration_file_dir = calibration_file_path
         try:
             with open(calibration_file_path,'r') as calibration_stream:
                 self._calibration = yaml.load(calibration_stream)
