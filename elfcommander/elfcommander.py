@@ -615,6 +615,7 @@ class ElfCommander(object):
     #     data_file.close()
 
     def run_calibration(self):
+        calibration_start_time = time.time()
         self._debug_print('pre setup sequence...')
         valves = ['quad1','quad2','quad3','quad4','quad5','quad6']
         self._debug_print('filling all cylinders...')
@@ -707,6 +708,10 @@ class ElfCommander(object):
                 self._set_all_valves_off()
                 data_writer.writerow(row_data)
         data_file.close()
+        calibration_stop_time = time.time()
+        calibration_duration = (calibration_stop_time - calibration_start_time)/(60*60)
+        self._debug_print('calibration duration is {0}h'.format(calibration_duration))
+
 
 def main(args=None):
     if args is None:
