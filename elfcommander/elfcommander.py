@@ -714,7 +714,7 @@ class ElfCommander(object):
         calibration_duration = (calibration_stop_time - calibration_start_time)/(60*60)
         self._debug_print('calibration duration is {0}h'.format(calibration_duration))
 
-    def _load_numpy_data(path):
+    def _load_numpy_data(self,path):
         with open(path,'r') as fid:
             header = fid.readline().rstrip().split(',')
 
@@ -918,7 +918,7 @@ class ElfCommander(object):
         fig.savefig(fig_filepath)
 
     def run_calibration(self):
-        self._collection_calibration_data()
+        self._collect_calibration_data()
         self._calculate_calibration_and_plot()
 
 
