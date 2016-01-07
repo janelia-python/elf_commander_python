@@ -643,7 +643,10 @@ class ElfCommander(object):
         self._debug_print('running calibration...')
         timestr = time.strftime("%Y%m%d-%H%M%S")
         data_filename = timestr + '.csv'
-        self._data_filepath = os.path.join(self._calibration_file_dir,'data',data_filename)
+        data_dir = os.path.join(self._calibration_file_dir,'data')
+        if not os.path.exists(data_dir):
+            os.mkdir(data_dir)
+        self._data_filepath = os.path.join(data_dir,data_filename)
         data_file = open(self._data_filepath,'w')
         data_writer = csv.writer(data_file)
         header = ['fill_duration','initial_weight']
@@ -910,7 +913,7 @@ class ElfCommander(object):
         # ax3.grid(True)
 
         # print(output_data)
-        with open(self._calibration_file_path,'r') as f:
+        with open(self._calibration_file_path,'r+') as f:
             yaml.dump(output_data, f, default_flow_style=False)
 
         plot.show()
