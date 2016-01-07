@@ -913,7 +913,7 @@ class ElfCommander(object):
         # ax3.grid(True)
 
         # print(output_data)
-        with open(self._calibration_file_path,'r+') as f:
+        with open(self._calibration_file_path,'w') as f:
             yaml.dump(output_data, f, default_flow_style=False)
 
         plot.show()
