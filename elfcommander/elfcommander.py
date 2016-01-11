@@ -587,7 +587,7 @@ class ElfCommander(object):
         data_writer.writerow(header)
         for dispense_goal in self._config['dispense_goals']:
             for run in range(self._config['run_count']):
-                self._debug_print('dispense_goal: {0}, run: {1} out of {2}'.format(dispense_goal,run+1,run_count))
+                self._debug_print('dispense_goal: {0}, run: {1} out of {2}'.format(dispense_goal,run+1,self._config['run_count']))
                 row_data = []
                 row_data.append(dispense_goal)
                 initial_weight = self._get_weight_filtered()
