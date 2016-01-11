@@ -429,7 +429,7 @@ class ElfCommander(object):
             weight_filtered = numpy.mean(weights,axis=0)
         return weight_filtered
 
-    def _dispense_volume(self,valve_keys,volume):
+    def _fill_volume(self,valve_keys,volume):
     #     if i > 0:
     #         dispense_shake_duration = self._config['inter_dispense_shake_duration']
     #         if dispense_shake_duration < self._config['shake_duration_min']:
@@ -512,8 +512,13 @@ class ElfCommander(object):
             self._debug_print('loading chemical into syringes for ' + str(self._config['load_duration_full']) + 's...')
             time.sleep(self._config['load_duration_full'])
             self._set_valves_off(valve_keys)
-        self._set_valve_off('system')
         self._debug_print('sleeping after cylinder fill for ' + str(self._config['post_cylinder_fill_duration']) + 's.. ')
+        time.sleep(self._config['post_cylinder_fill_duration'])
+        return final_adc_values,jumps_list
+
+    def _dispense_volume(self,valve_keys,volume):
+        final_adc_values,jumps = self._fill_volume(valves,dispense_goal)
+        self._set_valve_off('system')
         time.sleep(self._config['post_cylinder_fill_duration'])
         self._set_valves_on(valve_keys)
         self._debug_print('dispensing chemical into microplate for ' + str(self._config['dispense_duration_full']) + 's.. ')
@@ -545,76 +550,72 @@ class ElfCommander(object):
         fill_duration = int(round(poly(volume)))
         return fill_duration
 
-    # def run_dispense_tests(self):
-    #     self._debug_print('pre setup sequence...')
-    #     valves = ['quad1','quad2','quad3','quad4','quad5','quad6']
-    #     self._set_valve_on('aspirate')
-    #     self._set_valve_on('system')
-    #     self._set_valves_on(valves)
-    #     time.sleep(10)
-    #     self._set_valve_off('system')
-    #     time.sleep(10)
-    #     self._set_valve_off('aspirate')
-    #     time.sleep(20)
-    #     self._setup()
-    #     self._set_valve_on('aspirate')
-    #     time.sleep(10)
-    #     self._debug_print('zeroing balance...')
-    #     self._balance.zero()
-    #     self._debug_print('running dispense tests...')
-    #     timestr = time.strftime("%Y%m%d-%H%M%S")
-    #     data_file = open(timestr+'.csv','w')
-    #     data_writer = csv.writer(data_file)
-    #     header = ['dispense_goal','initial_weight']
-    #     valve_adc = [valve+'_adc' for valve in valves]
-    #     header.extend(valve_adc)
-    #     valve_jumps = [valve+'_jumps' for valve in valves]
-    #     header.extend(valve_jumps)
-    #     header.extend(valves)
-    #     data_writer.writerow(header)
-    #     # dispense_goals = [5,4,3,2,1]
-    #     # dispense_goals = [1,0.75,0.5,0.25]
-    #     dispense_goals = [5,1,0.5]
-    #     # dispense_goals = [2,1]
-    #     # run_count = 10
-    #     run_count = 1
-    #     # dispense_goals = [1]
-    #     # run_count = 2
-    #     for dispense_goal in dispense_goals:
-    #         for run in range(run_count):
-    #             self._set_valve_on('aspirate')
-    #             time.sleep(2)
-    #             self._debug_print('dispense_goal: {0}, run: {1} out of {2}'.format(dispense_goal,run+1,run_count))
-    #             row_data = []
-    #             row_data.append(dispense_goal)
-    #             initial_weight = self._balance.get_weight()[0]
-    #             self._debug_print('initial_weight: {0}'.format(initial_weight))
-    #             row_data.append(initial_weight)
-    #             self._set_valve_on('system')
-    #             time.sleep(2)
-    #             final_adc_values,jumps = self._set_valves_on_until(valves,dispense_goal)
-    #             row_data.extend(final_adc_values)
-    #             row_data.extend(jumps)
-    #             self._set_valve_off('system')
-    #             time.sleep(4)
-    #             weight_prev = initial_weight
-    #             for valve in valves:
-    #                 self._debug_print('Dispensing {0}'.format(valve))
-    #                 self._set_valve_on(valve)
-    #                 time.sleep(4)
-    #                 self._set_valve_off(valve)
-    #                 time.sleep(2)
-    #                 weight_total = self._balance.get_weight()[0]
-    #                 weight = weight_total - weight_prev
-    #                 self._debug_print('{0} measured {1}'.format(valve,weight))
-    #                 row_data.append(weight)
-    #                 weight_prev = weight_total
-    #             self._set_valve_off('aspirate')
-    #             self._debug_print('aspirating...')
-    #             time.sleep(20)
-    #             self._set_all_valves_off()
-    #             data_writer.writerow(row_data)
-    #     data_file.close()
+    def run_dispense_tests(self):
+        test_start_time = time.time()
+        self._debug_print('pre setup sequence...')
+        valves = ['quad1','quad2','quad3','quad4','quad5','quad6']
+        self._debug_print('filling all cylinders...')
+        self._set_valve_on('system')
+        self._debug_print('sleeping before cylinder fill for ' + str(self._config['pre_cylinder_fill_duration']) + 's.. ')
+        time.sleep(self._config['pre_cylinder_fill_duration'])
+        self._set_valves_on(valves)
+        time.sleep(self._config['fill_duration_full'])
+        self._debug_print('zeroing balance...')
+        self._balance.zero()
+        time.sleep(self._config['balance_zero_duration'])
+        self._debug_print('emptying all cylinders...')
+        self._set_valve_off('system')
+        time.sleep(self._config['dispense_duration_full'])
+        self._set_valves_off(valves)
+        initial_weight = self._get_weight_filtered()
+        self._debug_print('initial_weight: {0}'.format(initial_weight))
+        self._debug_print('running dispense tests...')
+        timestr = time.strftime("%Y%m%d-%H%M%S")
+        data_filename = 'test-' + timestr + '.csv'
+        data_dir = os.path.join(self._calibration_file_dir,'data')
+        if not os.path.exists(data_dir):
+            os.mkdir(data_dir)
+        self._test_data_filepath = os.path.join(data_dir,data_filename)
+        data_file = open(self._test_data_filepath,'w')
+        data_writer = csv.writer(data_file)
+        header = ['dispense_goal','initial_weight']
+        valve_adc = [valve+'_adc' for valve in valves]
+        header.extend(valve_adc)
+        valve_jumps = [valve+'_jumps' for valve in valves]
+        header.extend(valve_jumps)
+        header.extend(valves)
+        data_writer.writerow(header)
+        for dispense_goal in self._config['dispense_goals']:
+            for run in range(self._config['run_count']):
+                self._debug_print('dispense_goal: {0}, run: {1} out of {2}'.format(dispense_goal,run+1,run_count))
+                row_data = []
+                row_data.append(dispense_goal)
+                initial_weight = self._get_weight_filtered()
+                self._debug_print('initial_weight: {0}'.format(initial_weight))
+                row_data.append(initial_weight)
+                self._set_valve_on('system')
+                time.sleep(self._config['pre_cylinder_fill_duration'])
+                final_adc_values,jumps = self._fill_volume(valves,dispense_goal)
+                row_data.extend(final_adc_values)
+                row_data.extend(jumps)
+                self._set_valve_off('system')
+                time.sleep(self._config['post_cylinder_fill_duration'])
+                weight_prev = self._get_weight_filtered()
+                for valve in valves:
+                    self._debug_print('Dispensing {0}'.format(valve))
+                    self._set_valve_on(valve)
+                    time.sleep(4)
+                    self._set_valve_off(valve)
+                    time.sleep(2)
+                    weight_total = self._get_weight_filtered()
+                    weight = weight_total - weight_prev
+                    self._debug_print('{0} measured {1}'.format(valve,weight))
+                    row_data.append(weight)
+                    weight_prev = weight_total
+                time.sleep(20)
+                self._set_all_valves_off()
+                data_writer.writerow(row_data)
+        data_file.close()
 
     def _collect_calibration_data(self):
         calibration_start_time = time.time()
@@ -622,14 +623,16 @@ class ElfCommander(object):
         valves = ['quad1','quad2','quad3','quad4','quad5','quad6']
         self._debug_print('filling all cylinders...')
         self._set_valve_on('system')
+        self._debug_print('sleeping before cylinder fill for ' + str(self._config['pre_cylinder_fill_duration']) + 's.. ')
+        time.sleep(self._config['pre_cylinder_fill_duration'])
         self._set_valves_on(valves)
-        time.sleep(20)
+        time.sleep(self._config['fill_duration_full'])
         self._debug_print('zeroing balance...')
         self._balance.zero()
-        time.sleep(4)
+        time.sleep(self._config['balance_zero_duration'])
         self._debug_print('emptying all cylinders...')
         self._set_valve_off('system')
-        time.sleep(10)
+        time.sleep(self._config['dispense_duration_full'])
         self._set_valves_off(valves)
         initial_weight = self._get_weight_filtered()
         self._debug_print('initial_weight: {0}'.format(initial_weight))
@@ -642,12 +645,12 @@ class ElfCommander(object):
         # self._store_adc_values_min()
         self._debug_print('running calibration...')
         timestr = time.strftime("%Y%m%d-%H%M%S")
-        data_filename = timestr + '.csv'
+        data_filename = 'calibration-' + timestr + '.csv'
         data_dir = os.path.join(self._calibration_file_dir,'data')
         if not os.path.exists(data_dir):
             os.mkdir(data_dir)
-        self._data_filepath = os.path.join(data_dir,data_filename)
-        data_file = open(self._data_filepath,'w')
+        self._calibration_data_filepath = os.path.join(data_dir,data_filename)
+        data_file = open(self._calibration_data_filepath,'w')
         data_writer = csv.writer(data_file)
         header = ['fill_duration','initial_weight']
         valve_adc_low = [valve+'_adc_low' for valve in valves]
@@ -672,7 +675,7 @@ class ElfCommander(object):
                 row_data.append(initial_weight)
                 time.sleep(2)
                 self._set_valve_on('system')
-                time.sleep(2)
+                time.sleep(self._config['pre_cylinder_fill_duration'])
                 channels = []
                 adc_low_ain = []
                 adc_high_ain = []
@@ -694,7 +697,7 @@ class ElfCommander(object):
                 row_data.extend(adc_low_values)
                 row_data.extend(adc_high_values)
                 self._set_valve_off('system')
-                time.sleep(4)
+                time.sleep(self._config['post_cylinder_fill_duration'])
                 weight_prev = self._get_weight_filtered()
                 for valve in valves:
                     self._debug_print('Dispensing {0}'.format(valve))
@@ -727,7 +730,7 @@ class ElfCommander(object):
 
     def _calculate_calibration_and_plot(self):
         # Load data
-        calibration_data = self._load_numpy_data(self._data_filepath)
+        calibration_data = self._load_numpy_data(self._calibration_data_filepath)
         header = list(calibration_data.dtype.names)
         cylinders = copy.copy(header)
         cylinders.remove('fill_duration')
@@ -917,7 +920,7 @@ class ElfCommander(object):
             yaml.dump(output_data, f, default_flow_style=False)
 
         plot.show()
-        fig_filepath = self._data_filepath.replace('.csv','.png')
+        fig_filepath = self._calibration_data_filepath.replace('.csv','.png')
         fig.savefig(fig_filepath)
 
     def run_calibration(self):
@@ -937,6 +940,9 @@ def main(args=None):
     parser.add_argument('-c','--calibration',
                         help='Calibration mode.',
                         action='store_true')
+    parser.add_argument('-t','--test',
+                        help='test calibration.',
+                        action='store_true')
 
     args = parser.parse_args()
     calibration_file_path = args.calibration_file_path
@@ -947,13 +953,7 @@ def main(args=None):
     print("Debug MSC: {0}".format(debug_msc))
 
     debug = True
-    if not args.calibration:
-        elf = ElfCommander(debug=debug,
-                           calibration_path=calibration_file_path,
-                           config_file_path=config_file_path,
-                           debug_msc=debug_msc)
-        elf.run_protocol()
-    else:
+    if args.calibration:
         elf = ElfCommander(debug=debug,
                            calibration_path=calibration_file_path,
                            config_file_path=config_file_path,
@@ -962,6 +962,21 @@ def main(args=None):
                            balance=True,
                            debug_msc=debug_msc)
         elf.run_calibration()
+    elif args.test:
+        elf = ElfCommander(debug=debug,
+                           calibration_path=calibration_file_path,
+                           config_file_path=config_file_path,
+                           mixed_signal_controller=True,
+                           bioshake_device=False,
+                           balance=True,
+                           debug_msc=debug_msc)
+        elf.run_dispense_tests()
+    else:
+        elf = ElfCommander(debug=debug,
+                           calibration_path=calibration_file_path,
+                           config_file_path=config_file_path,
+                           debug_msc=debug_msc)
+        elf.run_protocol()
 
 
 # -----------------------------------------------------------------------------------------
