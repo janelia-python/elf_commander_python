@@ -262,7 +262,8 @@ class ElfCommander(object):
             self._set_valve_on('aspirate')
             # self._set_valves_on(['quad1','quad2','quad3','quad4','quad5','quad6','aspirate'])
             valves = ['quad1','quad2','quad3','quad4','quad5','quad6']
-            self._dispense_volume(valves,dispense_volume)
+            self._fill_volume(valves,dispense_volume)
+            self._dispense_volume(valves)
             # for i in range(dispense_volume):
             #     if i > 0:
             #         dispense_shake_duration = self._config['inter_dispense_shake_duration']
@@ -516,15 +517,13 @@ class ElfCommander(object):
         time.sleep(self._config['post_cylinder_fill_duration'])
         return final_adc_values,jumps_list
 
-    def _dispense_volume(self,valve_keys,volume):
-        final_adc_values,jumps = self._fill_volume(valves,dispense_goal)
+    def _dispense_volume(self,valve_keys):
         self._set_valve_off('system')
         time.sleep(self._config['post_cylinder_fill_duration'])
         self._set_valves_on(valve_keys)
         self._debug_print('dispensing chemical into microplate for ' + str(self._config['dispense_duration_full']) + 's.. ')
         time.sleep(self._config['dispense_duration_full'])
         self._set_valves_off(valve_keys)
-        return final_adc_values,jumps_list
 
     def _volume_to_adc_and_ain(self,valve_key,volume):
         valve = self._valves[valve_key]
@@ -922,6 +921,9 @@ class ElfCommander(object):
                 self._set_all_valves_off()
                 data_writer.writerow(row_data)
         data_file.close()
+        test_stop_time = time.time()
+        test_duration = (test_stop_time - test_start_time)/(60*60)
+        self._debug_print('test duration is {0}h'.format(test_duration))
 
     def _plot_dispense_tests(self):
         dispense_data = self._load_numpy_data(self._test_data_filepath)
