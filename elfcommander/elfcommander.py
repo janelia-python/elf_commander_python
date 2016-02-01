@@ -65,6 +65,7 @@ class ElfCommander(object):
                  bioshake_device=True,
                  balance=False,
                  debug_msc=False,
+                 test_data_path=None,
                  *args,**kwargs):
         if 'debug' in kwargs:
             self._debug = kwargs['debug']
@@ -94,6 +95,7 @@ class ElfCommander(object):
             calibration = self._config
             self._config = self._calibration
             self._calibration = calibration
+        self._test_data_path = test_data_path
         self._valves = self._config['head']
         try:
             self._valves.update(self._config['manifold'])
@@ -581,8 +583,8 @@ class ElfCommander(object):
         data_dir = os.path.join(self._calibration_file_dir,'data')
         if not os.path.exists(data_dir):
             os.mkdir(data_dir)
-        self._calibration_data_filepath = os.path.join(data_dir,data_filename)
-        data_file = open(self._calibration_data_filepath,'w')
+        self._calibration_data_path = os.path.join(data_dir,data_filename)
+        data_file = open(self._calibration_data_path,'w')
         data_writer = csv.writer(data_file)
         header = ['fill_duration','initial_weight']
         valve_adc_low = [valve+'_adc_low' for valve in valves]
@@ -662,7 +664,7 @@ class ElfCommander(object):
 
     def _calculate_calibration_and_plot(self):
         # Load data
-        calibration_data = self._load_numpy_data(self._calibration_data_filepath)
+        calibration_data = self._load_numpy_data(self._calibration_data_path)
         header = list(calibration_data.dtype.names)
         cylinders = copy.copy(header)
         cylinders.remove('fill_duration')
@@ -852,8 +854,8 @@ class ElfCommander(object):
             yaml.dump(output_data, f, default_flow_style=False)
 
         plot.show()
-        fig_filepath = self._calibration_data_filepath.replace('.csv','.png')
-        fig.savefig(fig_filepath)
+        fig_path = self._calibration_data_path.replace('.csv','.png')
+        fig.savefig(fig_path)
 
     def _run_dispense_tests(self):
         test_start_time = time.time()
@@ -880,8 +882,8 @@ class ElfCommander(object):
         data_dir = os.path.join(self._calibration_file_dir,'data')
         if not os.path.exists(data_dir):
             os.mkdir(data_dir)
-        self._test_data_filepath = os.path.join(data_dir,data_filename)
-        data_file = open(self._test_data_filepath,'w')
+        self._test_data_path = os.path.join(data_dir,data_filename)
+        data_file = open(self._test_data_path,'w')
         data_writer = csv.writer(data_file)
         header = ['dispense_goal','initial_weight']
         valve_adc = [valve+'_adc' for valve in valves]
@@ -926,7 +928,7 @@ class ElfCommander(object):
         self._debug_print('test duration is {0}h'.format(test_duration))
 
     def _plot_dispense_tests(self):
-        dispense_data = self._load_numpy_data(self._test_data_filepath)
+        dispense_data = self._load_numpy_data(self._test_data_path)
         cylinders = list(dispense_data.dtype.names)
         cylinders.remove('dispense_goal')
         cylinders.remove('initial_weight')
@@ -985,14 +987,105 @@ class ElfCommander(object):
 
         plot.tight_layout()
         plot.show()
-        fig_filepath = self._test_data_filepath.replace('.csv','.png')
-        fig.savefig(fig_filepath)
+        fig_path = self._test_data_path.replace('.csv','.png')
+        fig.savefig(fig_path)
 
     def run_calibration(self):
         self._collect_calibration_data()
         self._calculate_calibration_and_plot()
-        self._run_dispense_tests()
-        self._plot_dispense_tests()
+
+    def _recalibrate(self):
+        dispense_data = self._load_numpy_data(self._test_data_path)
+        cylinders = list(dispense_data.dtype.names)
+        cylinders.remove('dispense_goal')
+        cylinders.remove('initial_weight')
+        cylinders = [cylinder for cylinder in cylinders if 'jumps' not in cylinder and 'adc' not in cylinder]
+        print(cylinders)
+        cylinder_count = len(cylinders)
+        print(cylinder_count)
+        dispense_goals = numpy.int16(dispense_data['dispense_goal'])
+        dispense_goal_set = list(set(dispense_goals))
+        dispense_goal_set.sort(reverse=True)
+        print(dispense_goal_set)
+        goal_count = len(dispense_goal_set)
+        print(goal_count)
+
+        # Create figure
+        fig = plot.figure()
+        fig.suptitle('recalibration data',fontsize=14,fontweight='bold')
+        fig.subplots_adjust(top=0.85)
+        colors = ['b','g','r','c','m','y','k','b']
+        markers = ['o','o','o','o','o','o','o','^']
+
+        order = 3
+
+        with open(self._calibration_file_path,'r') as calibration_stream:
+            output_data = yaml.load(calibration_stream)
+
+        # Axis 2
+        ax2 = fig.add_subplot(122)
+        index = 0
+        for cylinder in cylinders:
+            color = colors[index]
+            marker = markers[index]
+            index += 1
+            volume_data = []
+            adc_data = []
+            for dispense_goal in dispense_goal_set:
+                measured_data = dispense_data[dispense_goals==dispense_goal]
+                volume_data_run = numpy.float64(measured_data[cylinder])
+                volume_data.append(volume_data_run)
+                adc_data_run = numpy.int16(measured_data[cylinder+'_adc'])
+                adc_data.append(adc_data_run)
+            run_count = len(volume_data[0])
+            data_point_count = len(volume_data)
+            coefficients_sum = None
+            for run in range(run_count):
+                volume_data_points = []
+                adc_data_points = []
+                for data_n in range(data_point_count):
+                    volume_data_point = volume_data[data_n][run]
+                    volume_data_points.append(volume_data_point)
+                    adc_data_point = adc_data[data_n][run]
+                    adc_data_points.append(adc_data_point)
+                volume_array = numpy.array(volume_data_points,dtype='float64')
+                adc_array = numpy.array(adc_data_points,dtype='int')
+                adc_array = adc_array[volume_array<=6]
+                volume_array = volume_array[volume_array<=6]
+                ax2.plot(volume_array,
+                         adc_array,
+                         linestyle='--',
+                         linewidth=1,
+                         color=color)
+                coefficients = polyfit(volume_array,adc_array,order)
+                if coefficients_sum is None:
+                    coefficients_sum = coefficients
+                else:
+                    coefficients_sum = polyadd(coefficients_sum,coefficients)
+            coefficients_average = coefficients_sum/run_count
+            poly_fit = Polynomial(coefficients_average)
+            adc_fit = poly_fit(volume_array)
+            ax2.plot(volume_array,
+                     adc_fit,
+                     linestyle='-',
+                     linewidth=2,
+                     label=cylinder,
+                     color=color)
+            coefficients_list = [float(coefficient) for coefficient in coefficients_average]
+            output_data[cylinder]['volume_to_adc_low'] = coefficients_list
+        ax2.set_xlabel('volume (ml)')
+        ax2.set_ylabel('adc low value (adc units)')
+        ax2.legend(loc='best')
+        ax2.set_title('recalibrated')
+
+        ax2.grid(True)
+
+        with open(self._calibration_file_path,'w') as f:
+            yaml.dump(output_data, f, default_flow_style=False)
+
+        plot.show()
+        fig_path = self._test_data_path.replace('.csv','.png')
+        fig.savefig(fig_path)
 
 
 def main(args=None):
@@ -1010,6 +1103,7 @@ def main(args=None):
     parser.add_argument('-t','--test',
                         help='test calibration.',
                         action='store_true')
+    parser.add_argument('-r',"--recalibrate", help="Path to test csv data file.")
 
     args = parser.parse_args()
     calibration_file_path = args.calibration_file_path
@@ -1018,6 +1112,8 @@ def main(args=None):
     print("Config File Path: {0}".format(config_file_path))
     debug_msc = args.debug_msc
     print("Debug MSC: {0}".format(debug_msc))
+
+    print("args.recalibrate: {0}".format(args.recalibrate))
 
     debug = True
     if args.calibration:
@@ -1029,6 +1125,16 @@ def main(args=None):
                            balance=True,
                            debug_msc=debug_msc)
         elf.run_calibration()
+        # reload calibration file
+        elf = ElfCommander(debug=debug,
+                           calibration_path=calibration_file_path,
+                           config_file_path=config_file_path,
+                           mixed_signal_controller=True,
+                           bioshake_device=False,
+                           balance=True,
+                           debug_msc=debug_msc)
+        elf._run_dispense_tests()
+        elf._plot_dispense_tests()
     elif args.test:
         elf = ElfCommander(debug=debug,
                            calibration_path=calibration_file_path,
@@ -1039,6 +1145,16 @@ def main(args=None):
                            debug_msc=debug_msc)
         elf._run_dispense_tests()
         elf._plot_dispense_tests()
+    elif args.recalibrate:
+        elf = ElfCommander(debug=debug,
+                           calibration_path=calibration_file_path,
+                           config_file_path=config_file_path,
+                           mixed_signal_controller=False,
+                           bioshake_device=False,
+                           balance=False,
+                           debug_msc=debug_msc,
+                           test_data_path=args.recalibrate)
+        elf._recalibrate()
     else:
         elf = ElfCommander(debug=debug,
                            calibration_path=calibration_file_path,
