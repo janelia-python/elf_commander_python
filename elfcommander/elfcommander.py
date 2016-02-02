@@ -173,7 +173,6 @@ class ElfCommander(object):
         self._setup()
         self.protocol_start_time = time.time()
         self._debug_print('running protocol...')
-        self._set_valves_on(['separate','aspirate'])
         for chemical_info in self._config['protocol']:
             chemical = chemical_info['chemical']
             try:
@@ -223,6 +222,8 @@ class ElfCommander(object):
                                temperature,
                                repeat)
         self._set_all_valves_off()
+        if self._using_bsc:
+            self._bsc.set_elm_unlock_pos()
         self.protocol_end_time = time.time()
         protocol_run_time = self.protocol_end_time - self.protocol_start_time
         self._debug_print('protocol finished! it took ' + str(round(protocol_run_time/60)) + ' mins to run.')
@@ -274,8 +275,9 @@ class ElfCommander(object):
             self._set_valve_on('aspirate')
             # self._set_valves_on(['quad1','quad2','quad3','quad4','quad5','quad6','aspirate'])
             valves = ['quad1','quad2','quad3','quad4','quad5','quad6']
-            self._fill_volume(valves,dispense_volume)
-            self._dispense_volume(valves)
+            if dispense_volume > 0:
+                self._fill_volume(valves,dispense_volume)
+                self._dispense_volume(valves)
             # for i in range(dispense_volume):
             #     if i > 0:
             #         dispense_shake_duration = self._config['inter_dispense_shake_duration']
