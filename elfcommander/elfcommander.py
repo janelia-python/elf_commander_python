@@ -88,7 +88,8 @@ class ElfCommander(object):
                 self._calibration = yaml.load(calibration_stream)
         except IOError:
             self._calibration = None
-        with open(config_file_path,'r') as config_stream:
+        self._config_file_path = config_file_path
+        with open(self._config_file_path,'r') as config_stream:
             self._config = yaml.load(config_stream)
         # check to see if user switched config and calibration files
         if (self._calibration is not None) and('head' in self._calibration) and ('quad1' in self._config):
@@ -139,6 +140,15 @@ class ElfCommander(object):
         time.sleep(self._config['setup_duration'])
         self._set_all_valves_off()
         self._debug_print('setup finished!')
+
+    def reload_calibration_config_files(self):
+        try:
+            with open(self._calibration_file_path,'r') as calibration_stream:
+                self._calibration = yaml.load(calibration_stream)
+        except IOError:
+            self._calibration = None
+        with open(self._config_file_path,'r') as config_stream:
+            self._config = yaml.load(config_stream)
 
     def prime_system(self):
         self._setup()
@@ -936,7 +946,7 @@ class ElfCommander(object):
         print(cylinders)
         cylinder_count = len(cylinders)
         print(cylinder_count)
-        dispense_goals = numpy.int16(dispense_data['dispense_goal']*1000)
+        dispense_goals = numpy.int16(dispense_data['dispense_goal'])
         dispense_goal_set = list(set(dispense_goals))
         dispense_goal_set.sort(reverse=True)
         print(dispense_goal_set)
@@ -1003,7 +1013,7 @@ class ElfCommander(object):
         print(cylinders)
         cylinder_count = len(cylinders)
         print(cylinder_count)
-        dispense_goals = numpy.int16(dispense_data['dispense_goal']*1000)
+        dispense_goals = numpy.int16(dispense_data['dispense_goal'])
         dispense_goal_set = list(set(dispense_goals))
         dispense_goal_set.sort(reverse=True)
         print(dispense_goal_set)
@@ -1085,6 +1095,7 @@ class ElfCommander(object):
 
         plot.show()
         fig_path = self._test_data_path.replace('.csv','.png')
+        fig_path = self._test_data_path.replace('test','recalibration')
         fig.savefig(fig_path)
 
 
@@ -1104,6 +1115,7 @@ def main(args=None):
                         help='test calibration.',
                         action='store_true')
     parser.add_argument('-r',"--recalibrate", help="Path to test csv data file.")
+    parser.add_argument('-p',"--plot-dispense", help="Path to test csv data file.")
 
     args = parser.parse_args()
     calibration_file_path = args.calibration_file_path
@@ -1125,14 +1137,11 @@ def main(args=None):
                            balance=True,
                            debug_msc=debug_msc)
         elf.run_calibration()
-        # reload calibration file
-        elf = ElfCommander(debug=debug,
-                           calibration_path=calibration_file_path,
-                           config_file_path=config_file_path,
-                           mixed_signal_controller=True,
-                           bioshake_device=False,
-                           balance=True,
-                           debug_msc=debug_msc)
+        elf.reload_calibration_config_files()
+        elf._run_dispense_tests()
+        elf._plot_dispense_tests()
+        elf._recalibrate()
+        elf.reload_calibration_config_files()
         elf._run_dispense_tests()
         elf._plot_dispense_tests()
     elif args.test:
@@ -1155,6 +1164,16 @@ def main(args=None):
                            debug_msc=debug_msc,
                            test_data_path=args.recalibrate)
         elf._recalibrate()
+    elif args.plot_dispense:
+        elf = ElfCommander(debug=debug,
+                           calibration_path=calibration_file_path,
+                           config_file_path=config_file_path,
+                           mixed_signal_controller=False,
+                           bioshake_device=False,
+                           balance=False,
+                           debug_msc=debug_msc,
+                           test_data_path=args.plot_dispense)
+        elf._plot_dispense_tests()
     else:
         elf = ElfCommander(debug=debug,
                            calibration_path=calibration_file_path,
