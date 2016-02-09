@@ -1097,7 +1097,7 @@ class ElfCommander(object):
 
         plot.show()
         fig_path = self._test_data_path.replace('.csv','.png')
-        fig_path = self._test_data_path.replace('test','recalibration')
+        fig_path = fig_path.replace('test','recalibration')
         fig.savefig(fig_path)
 
 
