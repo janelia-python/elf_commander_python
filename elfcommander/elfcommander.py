@@ -532,12 +532,21 @@ class ElfCommander(object):
         return final_adc_values,jumps_list
 
     def _dispense_volume(self,valve_keys):
-        self._set_valve_off('system')
-        time.sleep(self._config['post_cylinder_fill_duration'])
-        self._set_valves_on(valve_keys)
-        self._debug_print('dispensing chemical into microplate for ' + str(self._config['dispense_duration_full']) + 's.. ')
-        time.sleep(self._config['dispense_duration_full'])
-        self._set_valves_off(valve_keys)
+        if self._using_msc:
+            channels = []
+            for valve_key in valve_keys:
+                valve = self._valves[valve_key]
+                channels.append(valve['channel'])
+
+            self._set_valve_off('system')
+            time.sleep(self._config['post_cylinder_fill_duration'])
+            self._debug_print('dispensing chemical into microplate for ' + str(self._config['dispense_duration_full']) + 's.. ')
+            dispense_count = int(round(self._config['dispense_duration_full']/self._config['dispense_duration_on'] + 0.5))
+            for dispense_n in range(dispense_count):
+                self._msc.set_channels_on_for(channels,self._config['dispense_duration_on'])
+                # self._set_valves_on(valve_keys)
+                time.sleep(self._config['dispense_duration_off'])
+            self._set_valves_off(valve_keys)
 
     def _volume_to_adc_and_ain(self,valve_key,volume):
         valve = self._valves[valve_key]
