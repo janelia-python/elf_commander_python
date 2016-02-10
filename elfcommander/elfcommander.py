@@ -524,8 +524,8 @@ class ElfCommander(object):
                 # volume = self._adc_to_volume_low(valve_key,adc_value)
         else:
             self._set_valves_on(valve_keys)
-            self._debug_print('loading chemical into syringes for ' + str(self._config['load_duration_full']) + 's...')
-            time.sleep(self._config['load_duration_full'])
+            self._debug_print('loading chemical into syringes for ' + str(self._config['fill_duration_full']) + 's...')
+            time.sleep(self._config['fill_duration_full'])
             self._set_valves_off(valve_keys)
         self._debug_print('sleeping after cylinder fill for ' + str(self._config['post_cylinder_fill_duration']) + 's.. ')
         time.sleep(self._config['post_cylinder_fill_duration'])
