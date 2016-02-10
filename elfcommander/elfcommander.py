@@ -542,8 +542,13 @@ class ElfCommander(object):
             time.sleep(self._config['post_cylinder_fill_duration'])
             self._debug_print('dispensing chemical into microplate for ' + str(self._config['dispense_duration_full']) + 's.. ')
             dispense_count = int(round(self._config['dispense_duration_full']/self._config['dispense_duration_on'] + 0.5))
+            dispense_duration = int(self._config['dispense_duration_on']*1000)
             for dispense_n in range(dispense_count):
-                self._msc.set_channels_on_for(channels,self._config['dispense_duration_on'])
+                self._msc.set_channels_on_for(channels,dispense_duration)
+                while not self._msc.are_all_set_fors_complete():
+                    self._debug_print('Waiting...')
+                    time.sleep(dispense_duration/2000)
+                self._msc.remove_all_set_fors()
                 # self._set_valves_on(valve_keys)
                 time.sleep(self._config['dispense_duration_off'])
             self._set_valves_off(valve_keys)
