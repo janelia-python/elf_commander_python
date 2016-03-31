@@ -488,7 +488,7 @@ class ElfCommander(object):
                 fill_duration_initial_min = min(fill_durations_initial)
                 self._msc.set_channels_on_for(channels,fill_duration_initial_min)
                 while not self._msc.are_all_set_fors_complete():
-                    self._debug_print('Waiting...')
+                    # self._debug_print('Waiting...')
                     time.sleep(0.5 + fill_duration_initial_min/1000)
                 self._msc.remove_all_set_fors()
 
@@ -499,7 +499,7 @@ class ElfCommander(object):
                 self._debug_print("Setting {0} valves on for {1}ms".format(valve_keys_copy,fill_duration))
                 self._msc.set_channels_on_for(channels,fill_duration)
                 while not self._msc.are_all_set_fors_complete():
-                    self._debug_print('Waiting...')
+                    # self._debug_print('Waiting...')
                     time.sleep(fill_duration/1000)
                 self._msc.remove_all_set_fors()
                 adc_values_filtered = self._get_adc_values_filtered()
@@ -539,6 +539,7 @@ class ElfCommander(object):
                 channels.append(valve['channel'])
 
             self._set_valve_off('system')
+            print("channels = {0}".format(channels))
             time.sleep(self._config['post_cylinder_fill_duration'])
             self._debug_print('dispensing chemical into microplate for ' + str(self._config['dispense_duration_full']) + 's.. ')
             dispense_count = int(round(self._config['dispense_duration_full']/self._config['dispense_duration_on'] + 0.5))
@@ -546,7 +547,7 @@ class ElfCommander(object):
             for dispense_n in range(dispense_count):
                 self._msc.set_channels_on_for(channels,dispense_duration)
                 while not self._msc.are_all_set_fors_complete():
-                    self._debug_print('Waiting...')
+                    # self._debug_print('Waiting...')
                     time.sleep(dispense_duration/2000)
                 self._msc.remove_all_set_fors()
                 # self._set_valves_on(valve_keys)
@@ -648,7 +649,7 @@ class ElfCommander(object):
                 print('fill_duration: {0}'.format(fill_duration))
                 self._msc.set_channels_on_for(channels,fill_duration)
                 while not self._msc.are_all_set_fors_complete():
-                    self._debug_print('Waiting...')
+                    # self._debug_print('Waiting...')
                     time.sleep(fill_duration/1000)
                 self._msc.remove_all_set_fors()
                 adc_values_filtered = self._get_adc_values_filtered()
