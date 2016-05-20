@@ -211,6 +211,10 @@ class ElfCommander(object):
                 repeat = chemical_info['repeat']
             except KeyError:
                 repeat = 0
+            try:
+                exclude = chemical_info['exclude']
+            except KeyError:
+                exclude = None
             self._run_chemical(chemical,
                                prime_count,
                                dispense_volume,
@@ -220,7 +224,8 @@ class ElfCommander(object):
                                separate,
                                aspirate,
                                temperature,
-                               repeat)
+                               repeat,
+                               exclude)
         self._set_all_valves_off()
         if self._using_bsc:
             self._bsc.set_elm_unlock_pos()
@@ -252,7 +257,8 @@ class ElfCommander(object):
                       separate=False,
                       aspirate=True,
                       temp_target=None,
-                      repeat=0):
+                      repeat=0,
+                      exclude=None):
         if (chemical not in self._valves):
             raise ElfCommanderError(chemical + ' is not listed as part of the manifold in the config file!')
         if repeat < 0:
@@ -275,6 +281,9 @@ class ElfCommander(object):
             self._set_valve_on('aspirate')
             # self._set_valves_on(['quad1','quad2','quad3','quad4','quad5','quad6','aspirate'])
             valves = ['quad1','quad2','quad3','quad4','quad5','quad6']
+            if exclude is not None:
+                valves = list(set(valves) - set(exclude))
+            self._debug_print('dispensing in ' + valves)
             if dispense_volume > 0:
                 self._fill_volume(valves,dispense_volume)
                 self._dispense_volume(valves)
