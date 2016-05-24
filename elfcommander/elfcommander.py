@@ -283,7 +283,7 @@ class ElfCommander(object):
             valves = ['quad1','quad2','quad3','quad4','quad5','quad6']
             if exclude is not None:
                 valves = list(set(valves) - set(exclude))
-            self._debug_print('dispensing in ' + valves)
+            self._debug_print('dispensing in ' + str(valves))
             if dispense_volume > 0:
                 self._fill_volume(valves,dispense_volume)
                 self._dispense_volume(valves)
