@@ -57,7 +57,7 @@ setup(
     ],
 
     # What does your project relate to?
-    keywords='elf elfcommander janelia modular_device bioshake',
+    keywords='elf elfcommander janelia modular_client bioshake',
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
@@ -67,7 +67,7 @@ setup(
     # project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/technical.html#install-requires-vs-requirements-files
-    install_requires=['modular_device',
+    install_requires=['modular_client',
                       'bioshake_device >= 1.6',
                       'pyyaml',
                       'numpy',

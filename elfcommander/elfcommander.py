@@ -1,6 +1,6 @@
 from __future__ import print_function, division
 from serial_device2 import find_serial_device_ports
-from modular_device import ModularDevices
+from modular_client import ModularClients
 from bioshake_device import BioshakeDevice, BioshakeError
 from exceptions import Exception
 import os
@@ -48,7 +48,7 @@ class ElfCommander(object):
     This Python package (elfcommander) creates a class named ElfCommander to
     communcate with and control the Janelia Elf. The Elf
     uses two hardware control devices, the mixed_signal_controller
-    modular_device, and the bioshake_device. The
+    modular_client, and the bioshake_device. The
     mixed_signal_controller both switches the valves and reads the
     analog signals from the cylinder hall effect sensors. The
     bioshake_device controls the heater/shaker.
@@ -121,9 +121,9 @@ class ElfCommander(object):
             self._debug_print('Found balance on port ' + str(self._balance.get_port()))
             ports.remove(self._balance.get_port())
         if self._using_msc:
-            modular_devices = ModularDevices(try_ports=ports,timeout=MSC_TIMEOUT,debug=debug_msc)
+            modular_clients = ModularClients(try_ports=ports,timeout=MSC_TIMEOUT,debug=debug_msc)
             try:
-                msc_dict = modular_devices['mixed_signal_controller']
+                msc_dict = modular_clients['mixed_signal_controller']
             except KeyError:
                 raise ElfCommanderError('Could not find mixed_signal_controller. Check connections and permissions.')
             if len(msc_dict) > 1:
