@@ -21,8 +21,8 @@
   Open a terminal and enter:
 
   #+BEGIN_SRC sh
-source ~/virtualenvs/elfcommander/bin/activate
-elfcommander example_calibration.yaml example_config.yaml
+    source ~/virtualenvs/elfcommander/bin/activate
+    elfcommander example_calibration.yaml example_config.yaml
   #+END_SRC
 
 * Installation
@@ -34,7 +34,7 @@ elfcommander example_calibration.yaml example_config.yaml
     Open a terminal and enter:
 
     #+BEGIN_SRC sh
-sudo apt-get install git python-pip python-virtualenv python-dev build-essential -y
+      sudo apt-get install git python-pip python-virtualenv python-dev build-essential -y
     #+END_SRC
 
 ** Linux and Mac OS X
@@ -42,19 +42,19 @@ sudo apt-get install git python-pip python-virtualenv python-dev build-essential
    Open a terminal and enter:
 
    #+BEGIN_SRC sh
-mkdir ~/git
-cd ~/git
-git clone https://github.com/janelia-idf/elf_config.git
-git clone https://github.com/janelia-idf/elf.git
-cd elf
-git submodule init
-git submodule update
-cd ~
-mkdir ~/virtualenvs
-cd ~/virtualenvs
-virtualenv elfcommander
-source ~/virtualenvs/elfcommander/bin/activate
-pip install elfcommander
+     mkdir ~/git
+     cd ~/git
+     git clone https://github.com/janelia-idf/elf_config.git
+     git clone https://github.com/janelia-idf/elf.git
+     cd elf
+     git submodule init
+     git submodule update
+     cd ~
+     mkdir ~/virtualenvs
+     cd ~/virtualenvs
+     virtualenv elfcommander
+     source ~/virtualenvs/elfcommander/bin/activate
+     pip install elfcommander
    #+END_SRC
 
    On linux, you may need to add yourself to the group 'dialout' in order
@@ -63,8 +63,8 @@ pip install elfcommander
    Open a terminal and enter:
 
    #+BEGIN_SRC sh
-sudo usermod -aG dialout $USER
-sudo reboot
+     sudo usermod -aG dialout $USER
+     sudo reboot
    #+END_SRC
 
 ** Windows
@@ -72,8 +72,8 @@ sudo reboot
    Open a terminal and enter:
 
    #+BEGIN_SRC sh
-virtualenv C:\virtualenvs\elfcommander
-C:\virtualenvs\elfcommander\Scripts\activate
-pip install ipython
-pip install elfcommander
+     virtualenv C:\virtualenvs\elfcommander
+     C:\virtualenvs\elfcommander\Scripts\activate
+     pip install ipython
+     pip install elfcommander
    #+END_SRC
