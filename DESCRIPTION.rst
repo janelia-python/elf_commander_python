@@ -10,7 +10,7 @@ sensors. The bioshake_device controls the heater/shaker.
 
 Authors::
 
-    Peter Polidoro <polidorop@janelia.hhmi.org>
+    Peter Polidoro <peterpolidoro@gmail.com>
 
 License::
 
