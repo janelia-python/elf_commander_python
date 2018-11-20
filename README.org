@@ -3,8 +3,12 @@
 #+EMAIL: peterpolidoro@gmail.com
 
 * Package Information
-  - Author :: Peter Polidoro
+  - Name :: elf_commander_python
+  - Version :: 2.0.0
   - License :: BSD
+  - URL :: https://github.com/janelia-pypi/elf_commander_python
+  - Author :: Peter Polidoro
+  - Email :: peterpolidoro@gmail.com
 
   This Python package (elfcommander) creates a class named ElfCommander
   to communcate with and control the Janelia Elf. The Elf uses two
