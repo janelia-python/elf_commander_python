@@ -10,7 +10,7 @@ sensors. The bioshake_device controls the heater/shaker.
 
 Authors::
 
-    Peter Polidoro <peterpolidoro@gmail.com>
+    Peter Polidoro <peter@polidoro.io>
 
 License::
 
