@@ -6,7 +6,7 @@
   - Name :: elf_commander_python
   - Version :: 2.0.0
   - License :: BSD
-  - URL :: https://github.com/janelia-pypi/elf_commander_python
+  - URL :: https://github.com/janelia-python/elf_commander_python
   - Author :: Peter Polidoro
   - Email :: peter@polidoro.io
 
@@ -31,7 +31,7 @@
 
 * Installation
 
-  [[https://github.com/janelia-pypi/python_setup]]
+  [[https://github.com/janelia-python/python_setup]]
 
 *** Debian-based Linux Install Dependencies
 
